@@ -6,6 +6,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <mysql.h>
+#include <pthread.h>
 
 //Estructuras
 typedef struct{
@@ -32,17 +33,17 @@ typedef struct{
 	char apodo[10];
 	//Nivel del jugador 
 	char nivel[20];
-	//Socket 
+	//Socket asignado al jugador
 	int socket;
 	//Equipo formado por 2 pokemon del jugador
 	Tpokemon equipo[2];
 }Tjugador;
 typedef struct{
 	//Lista de jugadores conectados
-	Tjugador jugadores[100];
+	Tjugador conectados[100];
 	//Numero de jugadores conectados 
-	int numerojugadores;
-}Tlistajugadores;
+	int numeroconectados;
+}Tlistaconectados;
 //En la primera version solo 1 combate a la vez
 typedef struct{
 	//En el combate participan solo 2 jugadores
@@ -62,7 +63,9 @@ typedef struct{
 
 //Variables globales 
 	MYSQL *conn;
+	Tlistaconectados lista;
 	
+
 //Consulta mayor puntuacion de un jugador 
 int Mayor_puntuacion_jugador(char apodo[10]){
 
@@ -71,12 +74,7 @@ int Mayor_puntuacion_jugador(char apodo[10]){
 	int err;
 	char consulta[200];
 
-	//Cambiar por sprintf
-	strcpy(consulta,"SELECT puntuacion.puntuacion FROM puntuacion,jugador,combate WHERE jugador.apodo='");
-	strcat(consulta,apodo);
-	strcat(consulta,"' AND puntuacion.jugador='");
-	strcat(consulta,apodo);
-	strcat(consulta,"' AND puntuacion.combate = combate.id ORDER BY puntuacion.puntuacion DESC");
+	sprintf(consulta,"SELECT puntuacion.puntuacion FROM puntuacion,jugador,combate WHERE jugador.apodo='%s' AND puntuacion.jugador='%s' AND puntuacion.combate = combate.id ORDER BY puntuacion.puntuacion DESC",apodo,apodo);
 	err=mysql_query (conn,consulta);
 	if (err!=0) {
 		printf ("Error al consultar datos de la base %u %s\n",
@@ -130,11 +128,8 @@ int Numero_partidas_ganadas(char apodo[20]){
 	int err;
 	char consulta[200];
 	
-	//Cambiar por sprintf
 	//Miramos si existe el jugador
-	strcpy(consulta,"SELECT apodo FROM jugador WHERE apodo ='");
-	strcat(consulta,apodo);
-	strcat(consulta,"'");
+	sprintf(consulta,"SELECT apodo FROM jugador WHERE apodo ='%s'",apodo);
 	err = mysql_query(conn,consulta);
 	if(err!=0){
 		printf("Error al realizar la consulta %u %s\n", mysql_errno(conn),mysql_error(conn));
@@ -148,9 +143,7 @@ int Numero_partidas_ganadas(char apodo[20]){
 	}
 	//Miramos el numero de partidas ganadas
 	else{
-		strcpy(consulta,"SELECT ganador FROM combate WHERE ganador='");
-		strcat(consulta,apodo);
-		strcat(consulta,"'");
+		sprintf(consulta,"SELECT ganador FROM combate WHERE ganador='%s'",apodo);
 		err=mysql_query (conn, consulta);
 		if(err!=0){
 			printf("Error al realizar la consulta %u %s\n", mysql_errno(conn),mysql_error(conn));
@@ -181,13 +174,7 @@ int Registrar_jugador(char nombre[10],char pass[10],char apodo[20]){
 	int err;
 	char consulta[200];
 	
-	strcpy(consulta,"SELECT nombrecuenta,pass,apodo FROM jugador WHERE nombrecuenta='");
-	strcat(consulta,nombre);
-	strcat(consulta,"' AND pass='");
-	strcat(consulta,pass);
-	strcat(consulta,"' AND apodo='");
-	strcat(consulta,apodo);
-	strcat(consulta,"'");
+	sprintf(consulta,"SELECT nombrecuenta,pass,apodo FROM jugador WHERE nombrecuenta='%s' AND pass='%s' AND apodo='%s'",nombre,pass,apodo);
 	err= mysql_query(conn,consulta);
 	if(err!=0){
 		printf("Error al realizar la consulta %u %s\n", mysql_errno(conn),mysql_error(conn));
@@ -212,11 +199,7 @@ int Logear_jugador(char nombre[10],char pass[10], char apodo[20]){
 	int err;
 	char consulta[200];
 	
-	strcpy(consulta,"SELECT nombrecuenta,pass,apodo FROM jugador WHERE nombrecuenta='");
-	strcat(consulta,nombre);
-	strcat(consulta,"' AND pass='");
-	strcat(consulta,pass);
-	strcat(consulta,"'");
+	sprintf(consulta,"SELECT nombrecuenta,pass,apodo FROM jugador WHERE nombrecuenta='%s' AND pass='%s'",nombre,pass);
 	err= mysql_query(conn,consulta);
 	if(err!=0){
 		printf("Error al realizar la consulta %u %s\n", mysql_errno(conn),mysql_error(conn));
@@ -234,52 +217,134 @@ int Logear_jugador(char nombre[10],char pass[10], char apodo[20]){
 		return 1;
 	}
 }
-int main(int argc, char *argv[])
-{
-	int sock_conn, sock_listen, ret;
-	struct sockaddr_in serv_adr;
-	char peticion[512];
-	char respuesta[512];
+//Añadir jugador a la lista de conectados
+int Add_jugador(char nombre[20],int socket,Tlistaconectados *lista){
+		
+	int resultado = 1;
+	int i = 0;
+		
+	//Busqueda
+	while(i<lista->numeroconectados && resultado == 1){
+		if(strcmp(nombre,lista->conectados[i].apodo)==0){
+			//Implica que el jugador ya esta conectado
+			resultado = 0;
+		}
+		i++;
+	}
+	if(resultado == 1){
+		strcpy(lista->conectados[lista->numeroconectados].apodo,nombre);
+		lista->conectados[lista->numeroconectados].socket = socket;
+		lista->numeroconectados++;
+		//Jugador añadido, devuelve 1
+		return resultado;
+	}
+	else{
+		//Jugador no añadido porque ya esta conectado , devuelve 0
+		return resultado;
+	}
 	
-	conn = mysql_init(NULL);
-	if (conn==NULL) {
-		printf ("Error al crear la conexion: %u %s\n", 
-				mysql_errno(conn), mysql_error(conn));
-		exit (1);
+}	
+//Eliminar jugador de la lista de conectados
+int Eliminar_jugador(char nombre[20],Tlistaconectados *lista){
+			
+	int resultado = 0;
+	int i = 0;
+			
+	//Busqueda
+	while(i<lista->numeroconectados && resultado == 0){
+		if(strcmp(nombre,lista->conectados[i].apodo)==0){
+		//Implica que el jugador esta conectado
+		resultado = 1;
+		}
+		else{
+			i++;
+		}
 	}
-	//inicializar la conexion, indicando nuestras claves de acceso
-	// al servidor de bases de datos (user,pass)
-	conn = mysql_real_connect (conn, "localhost","root", "mysql", "juego", 0, NULL, 0);
-	if (conn==NULL)
-	{
-		printf ("Error al inicializar la conexion: %u %s\n", 
-				mysql_errno(conn), mysql_error(conn));
-		exit (1);
+	if(resultado == 1){
+		for(i;i<lista->numeroconectados-1;i++){
+			strcpy(lista->conectados[i].apodo,lista->conectados[i+1].apodo);
+			lista->conectados[i].socket = lista->conectados[i+1].socket;
+		}
+		lista->numeroconectados--;
+		//Jugador eliminado, devuelve 1
+		return resultado;
 	}
-	// INICIALIZACIONES
-	//Abrimos el socket
-	if ((sock_listen = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-		printf("Error creando socket");
-	// Hacemos el bind en el port
-	memset(&serv_adr, 0, sizeof(serv_adr));// inicializa a cero serv_addr
-	serv_adr.sin_family = AF_INET;
-	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY); /* Lo mete en IP local */
-	serv_adr.sin_port = htons(9050);
-	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
-		printf("Error en el bind");
-	// Limitamos el numero de conexiones pendientes
-	if (listen(sock_listen, 10) < 0)
-		printf("Error en el listen");
-	for(;;){
-		printf("Escuchando\n");
-		sock_conn = accept(sock_listen, NULL, NULL);
-		//sock_conn es el socket que utilizaremos para el cliente
+	else{
+		//Jugador no conectado o que no existe, por tanto no se puede eliminar, devuelve 0
+		return resultado;
+	}
+}
+//Devuelve el socket de un jugador conectado
+int Socket_jugador(char nombre[20],Tlistaconectados *lista){
+	
+	int resultado = 0;
+	int i = 0;
+			
+	//Busqueda
+	while(i<lista->numeroconectados && resultado == 0){
+		if(strcmp(nombre,lista->conectados[i].apodo)==0){
+		//Implica que el jugador esta conectado
+		    resultado = 1;
+		}
+		else{
+			i++;
+		}
+	}
+	if(resultado == 1){
+		//Devuelve el socket del jugador conectado
+		return lista->conectados[i].socket;
+	}
+	else{
+		//Jugador no conectado o no existente , devuelve 0
+		return resultado;
+	}
+}
+//Funcion que crea el codigo que enviara el sevidor con el numero de jugadores conectados y su nombre  
+void Crear_codigo(char codigo[1000],Tlistaconectados *lista){
+				
+	int i = 0;
+				
+	//Añade al principio del codigo el numero de jugadores conectados
+	sprintf(codigo,"%d",lista->numeroconectados);
+	//Añade los jugadores conectados al codigo , siempre que haya conectados
+	if(lista->numeroconectados > 0){
+		for(i = 0; i<lista->numeroconectados;i++){
+			//Los nombres separados por /
+			sprintf(codigo,"%s/%s",codigo,lista->conectados[i].apodo);
+		}
+	}
+}
+void Crear_codigo_sockets(char nombrecodigo[1000], char socketcodigo[1000], Tlistaconectados *lista){
+								
+	char *p;
+					
+    p = strtok(nombrecodigo,"/");
+    sprintf(socketcodigo,"%d",Socket_jugador(p,lista));
+    p = strtok(NULL,"/");
+	while(p != NULL){
+		sprintf(socketcodigo,"%s/%d",socketcodigo,Socket_jugador(p,lista));
+		p = strtok(NULL,"/");
+	}
+}
+void *Atender_Cliente(void *socket){
+		
+	int sock_conn;
+	int *s;
+	s = (int *) socket;
+	sock_conn = *s;
+	int ret;
+	char peticion[1000];
+	char respuesta[1000];
+	int terminar = 0;
+	int resultado;
+	
+	while(terminar == 0){
 		//Servicio
 		//read hace 2 cosas , guarda lo que llega en el socket en el buffer peticion
 		//y devuelve el numero de Bytes del mensaje , es decir su tamaÃ±o
 		//el tamaño de un char es de 1 Byte , o lo que es lo mismo 8 bits
 		ret=read(sock_conn,peticion, sizeof(peticion));
-		printf("Vamos bien\n");
+		printf("Recibido\n");
 		//Añadimos el caracter de fin de string para que no escriba lo que hay despues en el buffer
 		peticion[ret] = '\0';
 		//Vamos a ver que quieren(analizar la peticion)
@@ -298,6 +363,13 @@ int main(int argc, char *argv[])
 				int resultado = Logear_jugador(nombre,pass,apodo);
 				if(resultado == 1){
 					sprintf(respuesta,"%d/%s",resultado,apodo);
+					resultado = Add_jugador(apodo,sock_conn,&lista);
+					if(resultado == 1){
+						printf("Se ha conectado %s\n",apodo);
+					}
+					else{
+						printf("Error al añadir un jugador a la lista de conectados");
+					}
 				}
 				else{
 					sprintf(respuesta,"%d",resultado);
@@ -348,14 +420,90 @@ int main(int argc, char *argv[])
 				p = strtok(NULL,"/");
 				strcpy(apodo,p);
 				resultado = Registrar_jugador(nombre,pass,apodo);
+				if(resultado == 1){
+					printf("Se ha registrado el jugador %s correctamente\n",apodo);
+					Add_jugador(apodo,sock_conn,&lista);
+				}
+				else{
+					printf("Error al registrar al jugador %s",apodo);
+				}
 				sprintf(respuesta,"%d",resultado);
 				write(sock_conn,respuesta,strlen(respuesta));
 				break;
-		    default:
-				printf("Error en el codigo");
+			//Desconectar
+			case 5:
+				p = strtok(NULL,"/");
+				strcpy(apodo,p);
+				resultado = Eliminar_jugador(apodo,&lista);
+				if(resultado == 1){
+					printf("Se acabo el servicio para el jugador %s\n",apodo);
+					terminar = 1;
+				}
+				break;
+			//Lista de conectados
+			case 6:
+				Crear_codigo(respuesta,&lista);
+				printf("%s\n",respuesta);
+				write(sock_conn,respuesta,strlen(respuesta));
+				break;
+			default:
+				printf("Error en el codigo\n");
 				break;
 		}
-		close(sock_conn); /* Necessari per a que el client detecti EOF */
+		
+	}
+	//Se acabo el servicio para el cliente
+	close(sock_conn); 
+}
+int main(int argc, char *argv[])
+{
+	int sock_listen,sock_conn;
+	struct sockaddr_in serv_adr;
+	int sockets[100];
+	int i;
+	pthread_t thread[100];
+	lista.numeroconectados = 0;
+	
+	conn = mysql_init(NULL);
+	if (conn==NULL) {
+		printf ("Error al crear la conexion: %u %s\n", 
+				mysql_errno(conn), mysql_error(conn));
+		exit (1);
+	}
+	//inicializar la conexion, indicando nuestras claves de acceso
+	// al servidor de bases de datos (user,pass)
+	conn = mysql_real_connect (conn, "localhost","root", "mysql", "juego", 0, NULL, 0);
+	if (conn==NULL)
+	{
+		printf ("Error al inicializar la conexion: %u %s\n", 
+				mysql_errno(conn), mysql_error(conn));
+		exit (1);
+	}
+	// INICIALIZACIONES
+	//Abrimos el socket
+	if ((sock_listen = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+		printf("Error creando socket\n");
+	// Hacemos el bind en el port
+	memset(&serv_adr, 0, sizeof(serv_adr));// inicializa a cero serv_addr
+	serv_adr.sin_family = AF_INET;
+	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY); /* Lo mete en IP local */
+	serv_adr.sin_port = htons(9000);
+	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
+		printf("Error en el bind\n");
+	// Limitamos el numero de conexiones pendientes
+	if (listen(sock_listen, 10) < 0)
+		printf("Error en el listen\n");
+	for(i=0;;i++){
+		printf("Escuchando\n");
+		//sock_conn es el socket que utilizaremos para el cliente
+		sock_conn = accept(sock_listen, NULL, NULL);
+		printf("He recibido conexion\n");
+		//Almacenamos en el vector de sockets , el socket con el que nos comunicaremos con el usuario recien conectado
+		sockets[i] = sock_conn;
+		//Crear thread y decirle lo que tiene que hacer
+		//&thread[i] es un parametro de salida
+		//&sockets[i] es un parametro de entrada que le pasa a la funcion Atender_Cliente
+		pthread_create(&thread[i],NULL,Atender_Cliente,&sockets[i]);
 	}
 	//Cerramos la conexion con la base de datos
 	mysql_close(conn);

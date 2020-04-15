@@ -17,3 +17,12 @@ D:\Documentos\Desktop\uni\SO\Cliente\Cliente\Cliente\obj\Debug\Cliente.csprojRes
 D:\Documentos\Desktop\uni\SO\Cliente\Cliente\Cliente\obj\Debug\Cliente.Form1.resources
 D:\Documentos\Desktop\uni\SO\Cliente\Cliente\Cliente\obj\Debug\Cliente.Properties.Resources.resources
 D:\Documentos\Desktop\uni\SO\Cliente\Cliente\Cliente\obj\Debug\Cliente.csproj.GenerateResource.Cache
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\bin\Debug\Cliente.exe.config
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.exe
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.pdb
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\bin\Debug\Cliente.exe
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\bin\Debug\Cliente.pdb
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.csprojResolveAssemblyReference.cache
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.Form1.resources
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.Properties.Resources.resources
+D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.csproj.GenerateResource.Cache
