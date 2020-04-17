@@ -39,7 +39,6 @@ namespace Cliente
             label_nickRegistro.Visible = false;
             textBox_nick.Visible = false;
             button_registrarse.Visible = false;
-            this.FormBorderStyle = FormBorderStyle.None;
         }
         ///////////////////////////////////// FUNCIONAMIENTO MENU LATERAL /////////////////////////////////////
         //EsconderSubMenu() y MostrarSubMenu() para hacer funcionar
@@ -64,7 +63,7 @@ namespace Cliente
         private void Conexion()
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            remoteEP = new IPEndPoint(IPAddress.Parse("192.168.56.104"), 9000);
+            remoteEP = new IPEndPoint(IPAddress.Parse("192.168.1.41"), 9210);
             try
             {
                 socket.Connect(remoteEP);
@@ -134,7 +133,7 @@ namespace Cliente
         private void listar_conectados()
         {
             //Construimos la consulta para el servidor (6/)
-            //El servidor nos devolverá una lista de usuarios conectados (María/Juan/Pedro).
+            //El servidor nos devolverá una lista de usuarios conectados (3/María/Juan/Pedro).
             string consulta = "6/";
             socket.Send(Encoding.ASCII.GetBytes(consulta));
 
@@ -149,7 +148,7 @@ namespace Cliente
 
             dataGridView_listaConectados.RowCount = trozos_conectados.Length-1;
             dataGridView_listaConectados.ColumnCount = 1;
-            for (int i = 0; i < trozos_conectados.Length-1; i++)
+            for (int i = 0; i < Convert.ToInt32(trozos_conectados[0]); i++)
             {
                 dataGridView_listaConectados[0, i].Value = trozos_conectados[i+1];
             }
@@ -227,6 +226,7 @@ namespace Cliente
                     //Comprobamos que el resultdo sea el correcto o no.
                     if (resultado == -1)
                     {
+                        Desconexion();
                         MessageBox.Show("Contraseña o usuario incorrecto/s");
                     }
                     else
@@ -303,7 +303,7 @@ namespace Cliente
         ///////////////////////////////////// CONSULTAS /////////////////////////////////////
         private void button_consultas_Click(object sender, EventArgs e)
         {
-            /*if (conectado == false)
+            if (conectado == false)
             {
                 MessageBox.Show("Primero deberá conectarse.");
             }
@@ -312,11 +312,7 @@ namespace Cliente
             {
                 MostrarSubMenu(subpanel_menuConsultas);
                 label_títuloConsulta.Visible = false;
-            }*/
-
-            MostrarSubMenu(subpanel_menuConsultas);
-
-
+            }
         }
 
         //Seleccionando la consulta que queremos en el submenú asignamos

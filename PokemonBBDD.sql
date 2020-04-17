@@ -56,7 +56,7 @@ PRIMARY KEY(apodo)
 
 INSERT INTO jugador VALUES('Cristian','cristian','Cris969','Maestro',1,2);
 INSERT INTO jugador VALUES('Joel','joel','Pachm','Bronce',1,2);
-INSERT INTO jugador VALUES('Diego','diego','Diego.rdto','Diamante',1,2);
+INSERT INTO jugador VALUES('Diego','diego','Diego96','Diamante',1,2);
 
 CREATE TABLE combate(
 
@@ -86,4 +86,4 @@ FOREIGN KEY (combate) REFERENCES combate(id)
 INSERT INTO puntuacion VALUES(3000,'Cris969',1,1,2);
 INSERT INTO puntuacion VALUES(2000,'Cris969',2,1,2);
 INSERT INTO puntuacion VALUES(1000,'Pachm',1,1,2);
-INSERT INTO puntuacion VALUES(1500,'Diego.rdto',2,1,2);
+INSERT INTO puntuacion VALUES(1000,'Diego.rdto',2,1,2);

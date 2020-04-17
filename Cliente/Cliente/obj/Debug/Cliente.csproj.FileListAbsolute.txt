@@ -26,3 +26,13 @@ D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.csproj
 D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.Form1.resources
 D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.Properties.Resources.resources
 D:\Documentos\Desktop\uni\SO\ProyectoSo\Cliente\Cliente\obj\Debug\Cliente.csproj.GenerateResource.Cache
+C:\Users\Diego\Desktop\Cliente1\Cliente\bin\Debug\Cliente.exe.config
+C:\Users\Diego\Desktop\Cliente1\Cliente\bin\Debug\Cliente.exe
+C:\Users\Diego\Desktop\Cliente1\Cliente\bin\Debug\Cliente.pdb
+C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.csprojAssemblyReference.cache
+C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.Form1.resources
+C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.Properties.Resources.resources
+C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.csproj.GenerateResource.cache
+C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.csproj.CoreCompileInputs.cache
+C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.exe
+C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.pdb

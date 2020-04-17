@@ -64,6 +64,8 @@ typedef struct{
 //Variables globales 
 	MYSQL *conn;
 	Tlistaconectados lista;
+	//Estructura para el acceso excluyente
+	pthread_mutex_t accesoexcluyente;
 	
 
 //Consulta mayor puntuacion de un jugador 
@@ -73,7 +75,6 @@ int Mayor_puntuacion_jugador(char apodo[10]){
 	MYSQL_ROW row;
 	int err;
 	char consulta[200];
-
 	sprintf(consulta,"SELECT puntuacion.puntuacion FROM puntuacion,jugador,combate WHERE jugador.apodo='%s' AND puntuacion.jugador='%s' AND puntuacion.combate = combate.id ORDER BY puntuacion.puntuacion DESC",apodo,apodo);
 	err=mysql_query (conn,consulta);
 	if (err!=0) {
@@ -83,12 +84,15 @@ int Mayor_puntuacion_jugador(char apodo[10]){
 	}
 	resultado = mysql_store_result (conn);
 	row = mysql_fetch_row (resultado);
+	
 	if (row == NULL)
 		return -1;
 	else{
+		
 		int puntuacion = atoi(row[0]);
 		return puntuacion;
 	}	
+	
 }
 //Datos de un combate
 int Datos_combate(int id, char ganador[20], char jugador1[20],char jugador2[20],int *puntuacion1,int *puntuacion2){
@@ -182,7 +186,7 @@ int Registrar_jugador(char nombre[10],char pass[10],char apodo[20]){
 	}
 	resultado = mysql_store_result(conn);
 	row = mysql_fetch_row(resultado);
-	if(row == NULL){
+	if(row == NULL){//No existe el jugador
 		//No existe el jugador
 		return 1;
 	}
@@ -232,9 +236,11 @@ int Add_jugador(char nombre[20],int socket,Tlistaconectados *lista){
 		i++;
 	}
 	if(resultado == 1){
+		pthread_mutex_lock (&accesoexcluyente);//indicamos que no interrumpan
 		strcpy(lista->conectados[lista->numeroconectados].apodo,nombre);
 		lista->conectados[lista->numeroconectados].socket = socket;
 		lista->numeroconectados++;
+		pthread_mutex_unlock (&accesoexcluyente);//Indicamos que ya se puede pasar a otro thread
 		//Jugador añadido, devuelve 1
 		return resultado;
 	}
@@ -261,15 +267,17 @@ int Eliminar_jugador(char nombre[20],Tlistaconectados *lista){
 		}
 	}
 	if(resultado == 1){
+		pthread_mutex_lock (&accesoexcluyente);//indicamos que no interrumpan
 		for(i;i<lista->numeroconectados-1;i++){
 			strcpy(lista->conectados[i].apodo,lista->conectados[i+1].apodo);
 			lista->conectados[i].socket = lista->conectados[i+1].socket;
 		}
 		lista->numeroconectados--;
 		//Jugador eliminado, devuelve 1
+		pthread_mutex_unlock (&accesoexcluyente);//Indicamos que ya se puede pasar a otro thread
 		return resultado;
 	}
-	else{
+	else if (resultado==0){
 		//Jugador no conectado o que no existe, por tanto no se puede eliminar, devuelve 0
 		return resultado;
 	}
@@ -371,16 +379,19 @@ void *Atender_Cliente(void *socket){
 						printf("Error al añadir un jugador a la lista de conectados");
 					}
 				}
-				else{
+				else if (resultado==-1){
 					sprintf(respuesta,"%d",resultado);
+					terminar=1;
 				}
 				write(sock_conn,respuesta,strlen(respuesta));
+				printf("Control\n");
 				break;
 			//Consulta Cristian
 			case 1:
 				p = strtok(NULL,"/");
 				apodo[20];
 				strcpy(apodo,p);
+				printf("%s\n", apodo);
 				sprintf(respuesta,"%d",Mayor_puntuacion_jugador(apodo));
 				write(sock_conn,respuesta,strlen(respuesta));
 				break;
@@ -463,6 +474,7 @@ int main(int argc, char *argv[])
 	int i;
 	pthread_t thread[100];
 	lista.numeroconectados = 0;
+	pthread_mutex_init (&accesoexcluyente, NULL);
 	
 	conn = mysql_init(NULL);
 	if (conn==NULL) {
@@ -487,7 +499,7 @@ int main(int argc, char *argv[])
 	memset(&serv_adr, 0, sizeof(serv_adr));// inicializa a cero serv_addr
 	serv_adr.sin_family = AF_INET;
 	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY); /* Lo mete en IP local */
-	serv_adr.sin_port = htons(9000);
+	serv_adr.sin_port = htons(9210);
 	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
 		printf("Error en el bind\n");
 	// Limitamos el numero de conexiones pendientes
