@@ -9,24 +9,18 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Net;
 using System.Net.Sockets;
-using System.Threading;
-using System.Resources;
 
 namespace Cliente
 {
     public partial class Form1 : Form
     {
-        ///////////////////////////////////// VARIABLES Y OBJETOS GLOBALES /////////////////////////////////////
+        ///////////////////////////////////// VARIABLES Y OBJETOS COMUNES /////////////////////////////////////
         Socket socket;
         IPEndPoint remoteEP;
-        Thread atender;
-
-        delegate void DelegadoParaListarConectados(string [] mensaje);
 
         bool conectado = false;
         string usuario;
         string apodo;
-        string apodoConsulta, IDcombateConsulta;
 
         int consultaID;  //Identificador de la consulta que el usuario seleccione en el menú.
                          // 1-> Mayor puntuacion de un jugador
@@ -46,113 +40,6 @@ namespace Cliente
             textBox_nick.Visible = false;
             button_registrarse.Visible = false;
         }
-
-        private void AtenderServidor()
-        {
-            while (true)
-            {
-                string apodoTx, apodoRx;
-
-                //Recibimos mensaje del servidor
-                byte[] data = new byte[80];
-                socket.Receive(data);
-                string[] mensaje = Encoding.ASCII.GetString(data).Split('\0');
-                string [] trozoMensaje=mensaje[0].Split('/');
-                int IDmensaje = Convert.ToInt32(trozoMensaje[0]);
-
-                switch (IDmensaje)
-                {
-                    case 0: //Respuesta al login
-                        //El codigo esperado es 1/Apodo si esta todo ok
-                        //-1 si falla 
-                        //Comprobamos que el resultdo sea el correcto o no.
-                        if (Convert.ToInt32(trozoMensaje[1]) == -1)
-                        {
-                            MessageBox.Show("Contraseña o usuario incorrecto/s");
-                            Desconexion();
-                        }
-                        else
-                        {
-                            apodo = Convert.ToString(trozoMensaje[2]);
-                            MessageBox.Show("Inicio de sesión correcto.");
-                        }
-                        break;
-                    case 1: //Respuesta consulta mayor puntuación de un jugador
-                        MessageBox.Show("La mayor puntuación de " + apodoConsulta + " es: " + trozoMensaje[1]);
-                        break;
-                    case 2: //Respuesta consulta datos de una partida
-                            //El codigo recibido es Resultado/Ganador/Jugador1/Puntuacion1/Jugador2/Puntuacion2
-                        MessageBox.Show("Jugador1: " + trozoMensaje[3] + " Puntuacion1: " + trozoMensaje[4]);
-                        MessageBox.Show("Jugador2: " + trozoMensaje[5] + " Puntuacion2: " + trozoMensaje[6]);
-                        MessageBox.Show("Ganador: " + trozoMensaje[2]);
-                        break;
-                    case 3: //Respuesta consulta # partidas ganadas
-                        MessageBox.Show("El # de partidas ganadas de " + apodoConsulta + " es: " + trozoMensaje[1]);
-                        break;
-                    case 4: //Respuesta al registro
-                        break;
-                    case 6: //Notificación de cambio en lista de conectados
-                                                
-                        DelegadoParaListarConectados delegado = new DelegadoParaListarConectados(ListarConectados);
-                        dataGridView_listaConectados.Invoke(delegado, new object[] { trozoMensaje });
-
-                        break;
-                    case 7:
-                        apodoTx = trozoMensaje[1];
-                        apodoRx = trozoMensaje[2];
-                        string respuesta;
-
-                        DialogResult dr = MessageBox.Show(apodoTx+" te invita a jugar. ¿Aceptar invitación?", "ACEPTAR INVITACIÓN", MessageBoxButtons.YesNo);
-                        switch (dr)
-                        {
-                            case DialogResult.No:
-                                //Construimos la respuesta para el servidor: 8/apodoTx/apodoRx/0
-                                respuesta = ("8/" + apodoTx+"/"+apodoRx+"/0\0");
-                                socket.Send(Encoding.ASCII.GetBytes(respuesta));
-                                break;
-                            case DialogResult.Yes:
-                                //Construimos la respuesta para el servidor: 8/apodoTx/apodoRx/1
-                                respuesta = ("8/" + apodoTx  + "/" + apodoRx + "/1\0");
-                                socket.Send(Encoding.ASCII.GetBytes(respuesta));
-                                MessageBox.Show("Se jugará la partida!");
-                                break;
-                        }
-
-                        break;
-                    case 8:
-                        apodoRx = trozoMensaje[2];
-                        int res = Convert.ToInt32(trozoMensaje[3]);
-                        if (res == 0)
-                        {
-                            MessageBox.Show(apodoRx+" ha rechazado la invitación.");
-                        }
-                        else if (res == 1)
-                        {
-                            MessageBox.Show(apodoRx + " ha aceptado la invitación!");
-                        }
-                        break;
-                    default:
-                        MessageBox.Show("Mensaje recibido erróneo.");
-                        break;
-                        
-
-                }
-            }
-        }
-
-        private void ListarConectados(string [] trozoMensaje)
-        {
-            panel_listaConectados.Visible = true;
-
-            dataGridView_listaConectados.RowCount = Convert.ToInt32(trozoMensaje[1]);
-            dataGridView_listaConectados.ColumnCount = 1;
-            for (int i = 0; i < Convert.ToInt32(trozoMensaje[1]); i++)
-            {
-                dataGridView_listaConectados[0, i].Value = trozoMensaje[i + 2];
-            }
-            dataGridView_listaConectados.ColumnHeadersVisible = false;
-        }
-
         ///////////////////////////////////// FUNCIONAMIENTO MENU LATERAL /////////////////////////////////////
         //EsconderSubMenu() y MostrarSubMenu() para hacer funcionar
         //el menú de la derecha
@@ -176,17 +63,12 @@ namespace Cliente
         private void Conexion()
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            remoteEP = new IPEndPoint(IPAddress.Parse("192.168.1.40"), 9130);
+            remoteEP = new IPEndPoint(IPAddress.Parse("192.168.1.41"), 9210);
             try
             {
                 socket.Connect(remoteEP);
                 conectado = true;
                 panel_estadoConexion.Invalidate();
-
-                //Ponemos en marcha el thread que atenderá los mensajes del servidor
-                ThreadStart ts = delegate { AtenderServidor(); };
-                atender = new Thread(ts);
-                atender.Start();
             }
 
             catch (SocketException)
@@ -199,13 +81,10 @@ namespace Cliente
         {
             try
             {
-                conectado = false;
-                EsconderSubMenu();
                 cerrar_lista_conectados();
-                panel_estadoConexion.Invalidate();
 
                 //Construimos la consulta para el servidor (5/usuario)
-                //para informar de la desconexión al servidor.
+                //para informar dwe la desconexión al servidor.
                 string consulta = ("5/" + apodo);
                 socket.Send(Encoding.ASCII.GetBytes(consulta));
 
@@ -213,9 +92,6 @@ namespace Cliente
                 socket.Shutdown(SocketShutdown.Both);
                 socket.Close();
                 conectado = false;
-
-                //Cerramos el thread que atiende los mensajes del servidor
-                atender.Abort();
             }
 
             catch (SocketException)
@@ -253,7 +129,31 @@ namespace Cliente
         }
 
         ///////////////////////////////////// LISTA DE CONECTADOS /////////////////////////////////////
-        //Procedimiento para cerrar la lista.
+        //Procedimiento para listar conectados y para cerrar la lista.
+        private void listar_conectados()
+        {
+            //Construimos la consulta para el servidor (6/)
+            //El servidor nos devolverá una lista de usuarios conectados (3/María/Juan/Pedro).
+            string consulta = "6/";
+            socket.Send(Encoding.ASCII.GetBytes(consulta));
+
+            byte[] data = new byte[1024];
+            int dataSize = socket.Receive(data);
+            string conectados = Encoding.ASCII.GetString(data, 0, dataSize);
+
+            char separador = '/';
+            string[] trozos_conectados = conectados.Split(separador);
+
+            panel_listaConectados.Visible = true;
+
+            dataGridView_listaConectados.RowCount = trozos_conectados.Length-1;
+            dataGridView_listaConectados.ColumnCount = 1;
+            for (int i = 0; i < Convert.ToInt32(trozos_conectados[0]); i++)
+            {
+                dataGridView_listaConectados[0, i].Value = trozos_conectados[i+1];
+            }
+            dataGridView_listaConectados.ColumnHeadersVisible = false;
+        }
         private void cerrar_lista_conectados()
         {
             panel_listaConectados.Visible = false;
@@ -262,9 +162,11 @@ namespace Cliente
         //Consulta al servidor para obtener una lista de conectados.
         private void button_listar_conectados_Click(object sender, EventArgs e)
         {
+            listar_conectados();
         }
         private void button_actualizarConectados_Click(object sender, EventArgs e)
         {
+            listar_conectados();
         }
         private void button_cerrarLista_Click(object sender, EventArgs e)
         {
@@ -307,16 +209,36 @@ namespace Cliente
                 {
                     //Construimos la consulta para nuestro servidor (0/Usuario/Contraseña)
                     //El servidor comprobará si nuestro usuario existe o no
-                    //En caso de que exista y la contrseña sea correcta devolverá un 1/apodo
+                    //En caso de que exista y la contrseña sea correcta devolverá un 1
                     //En caso de algún fallo devolverá un -1.
 
                     string consulta = ("0/" + usuario + "/" + password);
                     socket.Send(Encoding.ASCII.GetBytes(consulta));
+
+                    byte[] data = new byte[1024];
+                    socket.Receive(data);
+                    consulta = Encoding.ASCII.GetString(data).Split('\0')[0];
+                    //El codigo esperado es 1/Apodo si esta todo ok
+                    //-1 si falla 
+                    string[] codigo = consulta.Split('/');
+                    int resultado = Convert.ToInt32(codigo[0]);
+
+                    //Comprobamos que el resultdo sea el correcto o no.
+                    if (resultado == -1)
+                    {
+                        Desconexion();
+                        MessageBox.Show("Contraseña o usuario incorrecto/s");
+                    }
+                    else
+                    {
+                        apodo = codigo[1];
+                        MessageBox.Show("Inicio de sesión correcto.");
+                    }
                 }
             }
         }
 
-        ///////////////////////////////////// REGISTRO /////////////////////////////////////
+        ///////////////////////////////////// RESGISTRO /////////////////////////////////////
         //Procedimientos para registrarse
         //Para registrarse hay que estar deconectado
         //Una vez registrado se mantiene conectado con el usuario nuevo.
@@ -429,14 +351,18 @@ namespace Cliente
         {
             if (consultaID == 1)
             {
-                apodoConsulta= textBox_datosConsulta.Text;
+                string nickUsuario = textBox_datosConsulta.Text;
 
                 try
                 {
                     //Construimos la consulta para nuestro servidor (1/Usuario)
                     //El servidor devolverá la mayor puntuación del jugador.
-                    string consulta = ("1/" + apodoConsulta);
+                    string consulta = ("1/" + nickUsuario);
                     socket.Send(Encoding.ASCII.GetBytes(consulta));
+
+                    byte[] data = new byte[1024];
+                    int dataSize = socket.Receive(data);
+                    MessageBox.Show("La mayor puntuación de " + nickUsuario + " es: " + Encoding.ASCII.GetString(data, 0, dataSize));
                 }
                 catch (SocketException)
                 {
@@ -454,6 +380,10 @@ namespace Cliente
                     //El servidor devolverá el # de partidas ganadas del usuario.
                     string consulta = ("2/" + nickUsuario);
                     socket.Send(Encoding.ASCII.GetBytes(consulta));
+
+                    byte[] data = new byte[1024];
+                    int dataSize = socket.Receive(data);
+                    MessageBox.Show("El # de partidas ganadas de " + nickUsuario + " es: " + Encoding.ASCII.GetString(data, 0, dataSize));
                 }
                 catch (SocketException)
                 {
@@ -462,14 +392,23 @@ namespace Cliente
             }
             else if (consultaID == 3)
             {
-                IDcombateConsulta = textBox_datosConsulta.Text;
+                string partida_ID = textBox_datosConsulta.Text;
 
                 try
                 {
-                    //Construimos la consulta para nuestro servidor (3/combateID)
+                    //Construimos la consulta para nuestro servidor (2/Usuario)
                     //El servidor devolverá el ganador del combate.
-                    string consulta = ("3/" + IDcombateConsulta);
+                    string consulta = ("3/" + partida_ID);
                     socket.Send(Encoding.ASCII.GetBytes(consulta));
+
+                    byte[] data = new byte[1024];
+                    int dataSize = socket.Receive(data);
+                    string respuesta = Encoding.ASCII.GetString(data, 0, dataSize);
+                    //El codigo recibido es Resultado/Ganador/Jugador1/Puntuacion1/Jugador2/Puntuacion2
+                    string[] codigo = respuesta.Split('/');
+                    MessageBox.Show("Jugador1: " + codigo[2] + " Puntuacion1: " + codigo[3]);
+                    MessageBox.Show("Jugador2: " + codigo[4] + " Puntuacion2: " + codigo[5]);
+                    MessageBox.Show("Ganador: "+codigo[1]);
                 }
                 catch (SocketException)
                 {
@@ -502,30 +441,6 @@ namespace Cliente
                     MessageBox.Show("Error al desconectar.");
                     this.Close();
                 }
-            }
-        }
-
-        private void dataGridView_listaConectados_CellClick(object sender, DataGridViewCellEventArgs e)
-        {
-            string apodoRx = Convert.ToString(dataGridView_listaConectados.CurrentCell.Value);
-            DialogResult dr = MessageBox.Show("Quieres invitar a jugar a: " + apodoRx, "ENVIAR INVITACIÓN", MessageBoxButtons.YesNo);
-            switch (dr)
-            {
-                case DialogResult.No:
-                    break;
-                case DialogResult.Yes:
-                    try
-                    {
-                        //Construimos la consulta para nuestro servidor (3/combateID)
-                        //El servidor devolverá el ganador del combate.
-                        string peticion = ("7/" + apodo +"/" + apodoRx);
-                        socket.Send(Encoding.ASCII.GetBytes(peticion));
-                    }
-                    catch (SocketException)
-                    {
-                        MessageBox.Show("Error al enviar la petición.");
-                    }
-                    break;
             }
         }
 

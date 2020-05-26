@@ -36,23 +36,3 @@ C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.csproj.GenerateResourc
 C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.csproj.CoreCompileInputs.cache
 C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.exe
 C:\Users\Diego\Desktop\Cliente1\Cliente\obj\Debug\Cliente.pdb
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\bin\Debug\Cliente.exe.config
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\bin\Debug\Cliente.exe
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\bin\Debug\Cliente.pdb
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\obj\Debug\Cliente.csprojAssemblyReference.cache
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\obj\Debug\Cliente.Form1.resources
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\obj\Debug\Cliente.Properties.Resources.resources
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\obj\Debug\Cliente.csproj.GenerateResource.cache
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\obj\Debug\Cliente.csproj.CoreCompileInputs.cache
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\obj\Debug\Cliente.exe
-C:\Users\Diego\Desktop\Proyecto con acceso autoexcluyente\Cliente\Cliente\obj\Debug\Cliente.pdb
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\bin\Debug\Cliente.exe.config
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\bin\Debug\Cliente.exe
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\bin\Debug\Cliente.pdb
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\obj\Debug\Cliente.csprojAssemblyReference.cache
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\obj\Debug\Cliente.Form1.resources
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\obj\Debug\Cliente.Properties.Resources.resources
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\obj\Debug\Cliente.csproj.GenerateResource.cache
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\obj\Debug\Cliente.csproj.CoreCompileInputs.cache
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\obj\Debug\Cliente.exe
-C:\Users\diego\OneDrive\Escritorio\UNI\2A\SO\Proyecto SO\Cliente\Cliente\obj\Debug\Cliente.pdb
