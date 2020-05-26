@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <mysql.h>
 #include <pthread.h>
+#include <netinet/tcp.h>
+#include <unistd.h>
 
 //Estructuras
 typedef struct{
@@ -236,11 +238,9 @@ int Add_jugador(char nombre[20],int socket,Tlistaconectados *lista){
 		i++;
 	}
 	if(resultado == 1){
-		pthread_mutex_lock (&accesoexcluyente);//indicamos que no interrumpan
 		strcpy(lista->conectados[lista->numeroconectados].apodo,nombre);
 		lista->conectados[lista->numeroconectados].socket = socket;
 		lista->numeroconectados++;
-		pthread_mutex_unlock (&accesoexcluyente);//Indicamos que ya se puede pasar a otro thread
 		//Jugador añadido, devuelve 1
 		return resultado;
 	}
@@ -267,14 +267,12 @@ int Eliminar_jugador(char nombre[20],Tlistaconectados *lista){
 		}
 	}
 	if(resultado == 1){
-		pthread_mutex_lock (&accesoexcluyente);//indicamos que no interrumpan
 		for(i;i<lista->numeroconectados-1;i++){
 			strcpy(lista->conectados[i].apodo,lista->conectados[i+1].apodo);
 			lista->conectados[i].socket = lista->conectados[i+1].socket;
 		}
 		lista->numeroconectados--;
 		//Jugador eliminado, devuelve 1
-		pthread_mutex_unlock (&accesoexcluyente);//Indicamos que ya se puede pasar a otro thread
 		return resultado;
 	}
 	else if (resultado==0){
@@ -313,7 +311,7 @@ void Crear_codigo(char codigo[1000],Tlistaconectados *lista){
 	int i = 0;
 				
 	//Añade al principio del codigo el numero de jugadores conectados
-	sprintf(codigo,"%d",lista->numeroconectados);
+	sprintf(codigo,"6/%d",lista->numeroconectados);
 	//Añade los jugadores conectados al codigo , siempre que haya conectados
 	if(lista->numeroconectados > 0){
 		for(i = 0; i<lista->numeroconectados;i++){
@@ -334,6 +332,20 @@ void Crear_codigo_sockets(char nombrecodigo[1000], char socketcodigo[1000], Tlis
 		p = strtok(NULL,"/");
 	}
 }
+//Procedimiento para notificar a todos los usuarios conectados los cambios de la lista de conectados	
+void Notificacion_ListaConectados(int s, Tlistaconectados *lista){
+	char notificacion [1000];
+	
+	Crear_codigo(notificacion, lista);
+	printf("%s\n",notificacion);
+	
+	if(lista->numeroconectados>0){
+		for(int j=0;j<lista->numeroconectados;j++){
+			//if(lista->conectados[j].socket!=s)
+			write(lista->conectados[j].socket,notificacion,strlen(notificacion));
+	}
+	}
+}
 void *Atender_Cliente(void *socket){
 		
 	int sock_conn;
@@ -345,6 +357,9 @@ void *Atender_Cliente(void *socket){
 	char respuesta[1000];
 	int terminar = 0;
 	int resultado;
+	char apodoTx [20];
+	char apodoRx [20];
+	int res;
 	
 	while(terminar == 0){
 		//Servicio
@@ -355,6 +370,7 @@ void *Atender_Cliente(void *socket){
 		printf("Recibido\n");
 		//Añadimos el caracter de fin de string para que no escriba lo que hay despues en el buffer
 		peticion[ret] = '\0';
+		printf("Petición recibida: %s\n", peticion);
 		//Vamos a ver que quieren(analizar la peticion)
 		char *p = strtok(peticion,"/");
 		int codigo = atoi(p);
@@ -370,21 +386,45 @@ void *Atender_Cliente(void *socket){
 				strcpy(pass,p);
 				int resultado = Logear_jugador(nombre,pass,apodo);
 				if(resultado == 1){
-					sprintf(respuesta,"%d/%s",resultado,apodo);
+					sprintf(respuesta,"0/%d/%s\0",resultado,apodo);
+					pthread_mutex_lock (&accesoexcluyente);//Indicamos que no se interrumpa
 					resultado = Add_jugador(apodo,sock_conn,&lista);
+					pthread_mutex_unlock (&accesoexcluyente);//Indicamos que ya se puede interrumpir
+					
 					if(resultado == 1){
 						printf("Se ha conectado %s\n",apodo);
+						write(sock_conn, respuesta, strlen(respuesta));
+						sleep(1);
 					}
 					else{
 						printf("Error al añadir un jugador a la lista de conectados");
 					}
+					Notificacion_ListaConectados(sock_conn, &lista);
 				}
 				else if (resultado==-1){
-					sprintf(respuesta,"%d",resultado);
+					sprintf(respuesta,"0/%d\0",resultado);
 					terminar=1;
+					write(sock_conn,respuesta,strlen(respuesta));
+					printf("%s\n", respuesta);
 				}
-				write(sock_conn,respuesta,strlen(respuesta));
-				printf("Control\n");
+				
+				//Desactivamos el algoritmo de Nagle.
+				//int flag = 1;
+				//int result = setsockopt(sock_conn,IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(int));
+				//if(result==-1)
+					//printf("Error al desactivar el algoritmo de Nagle.\n");
+				//write(sock_conn, respuesta, strlen(respuesta));
+				//printf("%s\n", respuesta);
+				//Volvemos a activar el algoritmo de Nagle.
+				//flag=0;
+				//int result = setsockopt(sock_conn,IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(int));
+				//if(result==-1)
+					//printf("Error al activar el algoritmo de Nagle.\n");
+				//Notificacion_ListaConectados(sock_conn, &lista);
+				
+				
+				
+				
 				break;
 			//Consulta Cristian
 			case 1:
@@ -392,7 +432,7 @@ void *Atender_Cliente(void *socket){
 				apodo[20];
 				strcpy(apodo,p);
 				printf("%s\n", apodo);
-				sprintf(respuesta,"%d",Mayor_puntuacion_jugador(apodo));
+				sprintf(respuesta,"1/%d\0",Mayor_puntuacion_jugador(apodo));
 				write(sock_conn,respuesta,strlen(respuesta));
 				break;
 			//Consulta Diego	
@@ -400,7 +440,7 @@ void *Atender_Cliente(void *socket){
 				p = strtok(NULL,"/");
 				apodo[20];
 				strcpy(apodo,p);
-				sprintf(respuesta,"%d",Numero_partidas_ganadas(apodo));
+				sprintf(respuesta,"3/%d\0",Numero_partidas_ganadas(apodo));
 				write(sock_conn,respuesta,strlen(respuesta));
 				break;
 			//Consulta Joel	
@@ -411,11 +451,11 @@ void *Atender_Cliente(void *socket){
 				int puntuacion1,puntuacion2;
 				resultado = Datos_combate(id,ganador,jugador1,jugador2,&puntuacion1,&puntuacion2);
 				if(resultado == -1){
-					sprintf(respuesta,"%d",resultado);
+					sprintf(respuesta,"2/%d\0",resultado);
 					write(sock_conn,respuesta,strlen(respuesta));
 				}
 				else{
-					sprintf(respuesta,"%d/%s/%s/%d/%s/%d",resultado,ganador,jugador1,puntuacion1,jugador2,puntuacion2);
+					sprintf(respuesta,"2/%d/%s/%s/%d/%s/%d\0",resultado,ganador,jugador1,puntuacion1,jugador2,puntuacion2);
 					write(sock_conn,respuesta,strlen(respuesta));
 				}
 				break;
@@ -438,24 +478,51 @@ void *Atender_Cliente(void *socket){
 				else{
 					printf("Error al registrar al jugador %s",apodo);
 				}
-				sprintf(respuesta,"%d",resultado);
+				sprintf(respuesta,"4/%d\0",resultado);
 				write(sock_conn,respuesta,strlen(respuesta));
 				break;
 			//Desconectar
 			case 5:
 				p = strtok(NULL,"/");
 				strcpy(apodo,p);
+				pthread_mutex_lock (&accesoexcluyente);//Indicamos que no se interrumpa
 				resultado = Eliminar_jugador(apodo,&lista);
+				pthread_mutex_unlock (&accesoexcluyente);//Indicamos que ya se puede interrumpir
 				if(resultado == 1){
 					printf("Se acabo el servicio para el jugador %s\n",apodo);
 					terminar = 1;
 				}
 				break;
-			//Lista de conectados
-			case 6:
-				Crear_codigo(respuesta,&lista);
-				printf("%s\n",respuesta);
-				write(sock_conn,respuesta,strlen(respuesta));
+				
+			case 7:
+				p = strtok(NULL,"/");
+				strcpy(apodoTx,p);
+				printf("%s\n", apodoTx);
+				p = strtok(NULL,"/");
+				strcpy(apodoRx, p);
+				printf("%s\n", apodoRx);
+			
+				//NOTA: Introducir comprobación de que el usuarioRX esta conectado
+				//mediante una función, devolviendo 8/-1 si no lo está
+			
+				sprintf(respuesta,"7/%s/%s\0",apodoTx,apodoRx);
+				int sockRx=Socket_jugador(apodoRx, &lista);
+				write(sockRx,respuesta,strlen(respuesta));
+				
+			
+				break;
+			case 8:
+				p = strtok(NULL,"/");
+				strcpy(apodoTx,p);
+				p = strtok(NULL,"/");
+				strcpy(apodoRx, p);
+				p = strtok(NULL,"/");
+				res=atoi(p);
+				
+				sprintf(respuesta,"8/%s/%s/%d\n",apodoTx, apodoRx, res);
+				printf("%s", respuesta);
+				int sockTx = Socket_jugador(apodoTx, &lista);
+				write(sockTx,respuesta,strlen(respuesta));
 				break;
 			default:
 				printf("Error en el codigo\n");
@@ -499,7 +566,7 @@ int main(int argc, char *argv[])
 	memset(&serv_adr, 0, sizeof(serv_adr));// inicializa a cero serv_addr
 	serv_adr.sin_family = AF_INET;
 	serv_adr.sin_addr.s_addr = htonl(INADDR_ANY); /* Lo mete en IP local */
-	serv_adr.sin_port = htons(9210);
+	serv_adr.sin_port = htons(9130);
 	if (bind(sock_listen, (struct sockaddr *) &serv_adr, sizeof(serv_adr)) < 0)
 		printf("Error en el bind\n");
 	// Limitamos el numero de conexiones pendientes
@@ -510,6 +577,11 @@ int main(int argc, char *argv[])
 		//sock_conn es el socket que utilizaremos para el cliente
 		sock_conn = accept(sock_listen, NULL, NULL);
 		printf("He recibido conexion\n");
+		//Desactivamos el algoritmo de Nagle.
+		int flag = 1;
+		int result = setsockopt(sock_conn,IPPROTO_TCP,TCP_NODELAY,(char *) &flag,sizeof(int));
+		if(result==-1)
+			printf("Error al desactivar el algoritmo de Nagle.\n");
 		//Almacenamos en el vector de sockets , el socket con el que nos comunicaremos con el usuario recien conectado
 		sockets[i] = sock_conn;
 		//Crear thread y decirle lo que tiene que hacer
