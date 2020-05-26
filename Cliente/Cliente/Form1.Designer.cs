@@ -58,6 +58,10 @@
             this.textBox_datosConsulta = new System.Windows.Forms.TextBox();
             this.panel_listaConectados = new System.Windows.Forms.Panel();
             this.dataGridView_listaConectados = new System.Windows.Forms.DataGridView();
+            this.button_chat = new System.Windows.Forms.Button();
+            this.chat_lbl = new System.Windows.Forms.Label();
+            this.textBox_chat = new System.Windows.Forms.TextBox();
+            this.button_adios = new System.Windows.Forms.Button();
             this.panel_Menu.SuspendLayout();
             this.subpanel_menuConsultas.SuspendLayout();
             this.panel_inicioSesion.SuspendLayout();
@@ -311,6 +315,10 @@
             // 
             // panel_consultas
             // 
+            this.panel_consultas.Controls.Add(this.button_adios);
+            this.panel_consultas.Controls.Add(this.textBox_chat);
+            this.panel_consultas.Controls.Add(this.chat_lbl);
+            this.panel_consultas.Controls.Add(this.button_chat);
             this.panel_consultas.Controls.Add(this.label_títuloConsulta);
             this.panel_consultas.Controls.Add(this.label_IDpartidaConsulta);
             this.panel_consultas.Controls.Add(this.label_nickConsulta);
@@ -384,6 +392,41 @@
             this.dataGridView_listaConectados.TabIndex = 0;
             this.dataGridView_listaConectados.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView_listaConectados_CellClick);
             // 
+            // button_chat
+            // 
+            this.button_chat.Location = new System.Drawing.Point(418, 242);
+            this.button_chat.Name = "button_chat";
+            this.button_chat.Size = new System.Drawing.Size(99, 34);
+            this.button_chat.TabIndex = 5;
+            this.button_chat.Text = "ENVIAR";
+            this.button_chat.UseVisualStyleBackColor = true;
+            this.button_chat.Click += new System.EventHandler(this.button_chat_Click);
+            // 
+            // chat_lbl
+            // 
+            this.chat_lbl.AutoSize = true;
+            this.chat_lbl.Location = new System.Drawing.Point(85, 206);
+            this.chat_lbl.Name = "chat_lbl";
+            this.chat_lbl.Size = new System.Drawing.Size(51, 20);
+            this.chat_lbl.TabIndex = 6;
+            this.chat_lbl.Text = "label3";
+            // 
+            // textBox_chat
+            // 
+            this.textBox_chat.Location = new System.Drawing.Point(148, 246);
+            this.textBox_chat.Name = "textBox_chat";
+            this.textBox_chat.Size = new System.Drawing.Size(250, 26);
+            this.textBox_chat.TabIndex = 7;
+            // 
+            // button_adios
+            // 
+            this.button_adios.Location = new System.Drawing.Point(219, 278);
+            this.button_adios.Name = "button_adios";
+            this.button_adios.Size = new System.Drawing.Size(99, 34);
+            this.button_adios.TabIndex = 8;
+            this.button_adios.Text = "ADIOS!";
+            this.button_adios.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -442,6 +485,10 @@
         private System.Windows.Forms.Label label_nickRegistro;
         private System.Windows.Forms.Button button_registrarse;
         private System.Windows.Forms.Label label_títuloConsulta;
+        private System.Windows.Forms.Button button_adios;
+        private System.Windows.Forms.TextBox textBox_chat;
+        private System.Windows.Forms.Label chat_lbl;
+        private System.Windows.Forms.Button button_chat;
     }
 }
 

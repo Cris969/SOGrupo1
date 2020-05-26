@@ -22,6 +22,8 @@ namespace Cliente
         Thread atender;
 
         delegate void DelegadoParaListarConectados(string [] mensaje);
+        delegate void DelegadoParaChat(string [] mensaje);
+        delegate void DelegadoParaMostrar();
 
         bool conectado = false;
         string usuario;
@@ -115,6 +117,14 @@ namespace Cliente
                                 respuesta = ("8/" + apodoTx  + "/" + apodoRx + "/1\0");
                                 socket.Send(Encoding.ASCII.GetBytes(respuesta));
                                 MessageBox.Show("Se jugará la partida!");
+                                DelegadoParaMostrar delegado3 = new DelegadoParaMostrar(MostrarPanel);
+                                panel_consultas.Invoke(delegado3);
+                                DelegadoParaMostrar delegado4 = new DelegadoParaMostrar(MostrarBotonEnviar);
+                                button_chat.Invoke(delegado4);
+                                DelegadoParaMostrar delegado5 = new DelegadoParaMostrar(MostrarLBLChat);
+                                chat_lbl.Invoke(delegado5);
+                                DelegadoParaMostrar delegado6 = new DelegadoParaMostrar(MostrarTextBoxChat);
+                                textBox_chat.Invoke(delegado6);
                                 break;
                         }
 
@@ -129,7 +139,22 @@ namespace Cliente
                         else if (res == 1)
                         {
                             MessageBox.Show(apodoRx + " ha aceptado la invitación!");
+                            DelegadoParaMostrar delegado3 = new DelegadoParaMostrar(MostrarPanel);
+                            panel_consultas.Invoke(delegado3);
+                            DelegadoParaMostrar delegado4 = new DelegadoParaMostrar(MostrarBotonEnviar);
+                            button_chat.Invoke(delegado4);
+                            DelegadoParaMostrar delegado5 = new DelegadoParaMostrar(MostrarLBLChat);
+                            chat_lbl.Invoke(delegado5);
+                            DelegadoParaMostrar delegado6 = new DelegadoParaMostrar(MostrarTextBoxChat);
+                            textBox_chat.Invoke(delegado6);
                         }
+                        break;
+                    case 10:
+                        apodoTx = trozoMensaje[1];
+                        DelegadoParaChat delegado2 = new DelegadoParaChat(MensajeChat);
+                        chat_lbl.Invoke(delegado2, new object[] { trozoMensaje});
+
+
                         break;
                     default:
                         MessageBox.Show("Mensaje recibido erróneo.");
@@ -151,6 +176,28 @@ namespace Cliente
                 dataGridView_listaConectados[0, i].Value = trozoMensaje[i + 2];
             }
             dataGridView_listaConectados.ColumnHeadersVisible = false;
+        }
+
+        private void MensajeChat(string [] trozoMensaje)
+        {
+            chat_lbl.Text = trozoMensaje[1] + " dice:" + trozoMensaje[2];
+        }
+
+        private void MostrarPanel()
+        {
+            panel_consultas.Visible = true;
+        }
+        private void MostrarBotonEnviar()
+        {
+            button_chat.Visible = true;
+        }
+        private void MostrarLBLChat()
+        {
+            chat_lbl.Visible = true;
+        }
+        private void MostrarTextBoxChat()
+        {
+            textBox_chat.Visible = true;
         }
 
         ///////////////////////////////////// FUNCIONAMIENTO MENU LATERAL /////////////////////////////////////
@@ -176,7 +223,7 @@ namespace Cliente
         private void Conexion()
         {
             socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            remoteEP = new IPEndPoint(IPAddress.Parse("192.168.1.40"), 9130);
+            remoteEP = new IPEndPoint(IPAddress.Parse("192.168.1.40"), 9180);
             try
             {
                 socket.Connect(remoteEP);
@@ -526,6 +573,21 @@ namespace Cliente
                         MessageBox.Show("Error al enviar la petición.");
                     }
                     break;
+            }
+        }
+
+        private void button_chat_Click(object sender, EventArgs e)
+        {
+            string frase = textBox_chat.Text;
+            try
+            {
+                //Construimos el mensaje para el servidor (9/frase)
+                string consulta = ("9/"+apodo+"/" + frase);
+                socket.Send(Encoding.ASCII.GetBytes(consulta));
+            }
+            catch (SocketException)
+            {
+                MessageBox.Show("Error al realizar la consulta.");
             }
         }
 
